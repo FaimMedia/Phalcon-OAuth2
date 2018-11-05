@@ -4,22 +4,77 @@
  * DI Injectable OAuth service
  */
 
-namespace FaimMedia\PhalconOAuth\Di\OAuth;
+namespace FaimMedia\OAuth\Di;
 
 use Phalcon\Di\Injectable as DiInjectable;
 
-use Module\Api\Exception\AuthorizationException;
-
-use User\AccessToken as UserAccessToken;
+use FaimMedia\OAuth\Grant\GrantType;
 
 class OAuth extends DiInjectable {
 
-	private $_auth;
-	private $_user;
-	private $isAuthorized;
+	/**
+	 * Allow the X-Access-Token header
+	 */
+	const OPTION_ACCESS_TOKEN_X = 1;
 
-	public function __construct($accessToken = null) {
+	/**
+	 * Allow the accessToken query key
+	 */
+	const OPTION_ACCESS_TOKEN_QUERY = 2;
+
+
+
+	protected $_options;
+	protected $_grantType;
+
+	/**
+	 * Constructor
+	 */
+	public function __construct(array $config = []) {
 		if(empty($accessToken)) {
+			$accessToken = $this->getRequestAccessToken();
+		}
+
+		$this
+			->setGrantType(new GrantType())
+			->setAccessTokenModel(new AccessToken())
+			->setAuthCodeModel(new Auth)
+			->setClient()
+			->set
+
+		if(!empty($accessToken)) {
+			$this->validateAccessToken($accessToken);
+		}
+	}
+
+	/**
+	 * Set options
+	 */
+	public function setOptions(int $options, $remove = true): self {
+		if($remove) {
+			$this->_options = 0;
+		}
+
+		$this->_options |= $options;
+
+		return $this;
+	}
+
+	/**
+	 * Check if option is set
+	 */
+	public function hasOption(int $option): bool {
+		return ($this->option & $option);
+	}
+
+	/**
+	 * Tries to get the requests access token and honours the provided settings
+	 */
+	public function getRequestAccessToken(): ?string {
+
+		$accessToken = null;
+
+		if($this->hasOption(self::OPTION_ACCESS_TOKEN_X)) {
 			$accessToken = $this->request->getHeader('X-Access-Token');
 		}
 
@@ -29,15 +84,17 @@ class OAuth extends DiInjectable {
 			$accessToken = $this->request->getHeader('Authorization');
 		}
 
-		if(empty($accessToken) && $this->config->debug) {
+		if($this->hasOption(self::OPTION_ACCESS_TOKEN_QUERY) && empty($accessToken)) {
 			$accessToken = $this->request->getQuery('accessToken');
 		}
 
-		if(!empty($accessToken)) {
-			$this->validateAccessToken($accessToken);
-		}
+		return $accessToken;
 	}
 
+	/**
+	 * Validates a provided access token
+	 * If the access token is invalid, an AuthorizationException is returned
+	 */
 	public function validateAccessToken($accessToken = null) {
 		if(!$accessToken) {
 			$this->response->setStatusCode(401);
@@ -116,6 +173,15 @@ class OAuth extends DiInjectable {
 
 	public function isAuthorized() {
 		return $this->isAuthorized;
+	}
+
+	/**
+	 * Authorize
+	 */
+	public function authorize() {
+
+
+
 	}
 
 /* MAGIC */
