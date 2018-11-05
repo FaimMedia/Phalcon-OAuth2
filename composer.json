@@ -1,0 +1,28 @@
+{
+	"name": "faimmedia/phalcon-oauth-server",
+	"description": "Extensive OAuth server for PHP Phalcon",
+	"homepage": "https://github.com/FaimMedia/Phalcon-OAuth2-Server",
+
+	"license": "proprietary",
+
+	"authors": [{
+		"name": "Tim Peters",
+		"email": "info@faimmedia.nl",
+		"homepage": "https://faimmedia.nl",
+		"role": "Developer"
+	}],
+
+	"require": {
+		"php": "7.*",
+		"ext-phalcon": "3.*",
+
+		"ext-pdo": "*",
+		"ext-pdo_mysql": "*"
+	},
+
+	"autoload": {
+		"psr-4": {
+			"FaimMedia\\OAuth\\": "src/"
+		}
+	}
+}
