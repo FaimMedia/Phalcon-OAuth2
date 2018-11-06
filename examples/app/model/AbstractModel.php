@@ -1,10 +1,10 @@
 <?php
 
-namespace FaimMedia\OAuth\Model\OAuth;
+namespace Model;
 
-use Phalcon\Mvc\Model as MvcModel;
+use Phalcon\Mvc\Model;
 
-abstract class AbstractModel extends MvcModel {
+abstract class AbstractModel extends Model {
 
 	public $id;
 	public $dateCreated;
@@ -30,4 +30,5 @@ abstract class AbstractModel extends MvcModel {
 	public function getDateModified() {
 		return $this->dateModified;
 	}
+
 }

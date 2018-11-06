@@ -7,6 +7,7 @@ trait Session {
 	//const TYPE_CLIENT = 1;
 	//const TYPE_USER = 2;
 
+	public $id;
 	public $clientId;
 	public $type;
 	public $ownerId;
@@ -17,7 +18,7 @@ trait Session {
 	 * Get database table source
 	 */
 	public function getSource(): string {
-		return 'oauth_scope';
+		return 'oauth_session';
 	}
 
 	/**
@@ -26,18 +27,30 @@ trait Session {
 	public function columnMap(): array {
 		return [
 			'id'                  => 'id',
-			'client_id'           => 'clientId',
+			'oauth_client_id'     => 'oauthClientId',
 			'type'                => 'type',
-			'owner_id'            => 'ownerId',
+			'oauth_owner_id'      => 'oauthOwnerId',
 			'client_redirect_uri' => 'clientRedirectUri',
+			'user_created'        => 'userCreated',
+			'user_modified'       => 'userModified',
+			'date_created'        => 'dateCreated',
+			'date_modified'       => 'dateModified',
 		];
 	}
 
 /* GETTERS */
+
+	/**
+	 * Get ID
+	 */
+	public function getId(): int {
+		return (int)$this->id;
+	}
+
 	/**
 	 * Get client ID
 	 */
-	public function getClientId(): int {
+	public function getOAuthClientId(): int {
 		return (int)$this->clientId;
 	}
 

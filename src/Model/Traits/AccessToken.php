@@ -6,6 +6,8 @@ use DateTime;
 
 trait AccessToken {
 
+	public $id;
+	public $accessToken;
 	public $oauthSessionId;
 	public $expireDate;
 
@@ -23,8 +25,13 @@ trait AccessToken {
 	public function columnMap(): array {
 		return [
 			'id'                => 'id',
+			'access_token'      => 'accessToken',
 			'oauth_session_id'  => 'oauthSessionId',
 			'expire_date'       => 'expireDate',
+			'user_created'      => 'userCreated',
+			'user_modified'     => 'userModified',
+			'date_created'      => 'dateCreated',
+			'date_modified'     => 'dateModified',
 		];
 	}
 
@@ -35,6 +42,13 @@ trait AccessToken {
 	 */
 	public function getOAuthSessionId(): int {
 		return (int)$this->oauthSessionId;
+	}
+
+	/**
+	 * Get access token
+	 */
+	public function getAccessToken(): string {
+		return $this->accessToken;
 	}
 
 	/**

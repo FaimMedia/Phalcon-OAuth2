@@ -15,7 +15,7 @@ trait AuthCode {
 	 * Get database table source
 	 */
 	public function getSource(): string {
-		return 'oauth_auth_code';
+		return 'oauth_authorization_code';
 	}
 
 	/**

@@ -8,7 +8,14 @@ namespace FaimMedia\OAuth\Di;
 
 use Phalcon\Di\Injectable as DiInjectable;
 
-use FaimMedia\OAuth\Grant\GrantType;
+use FaimMedia\OAuth\Model\Interfaces\BaseInterface,
+    FaimMedia\OAuth\Model\Interfaces\ClientInterface;
+
+use FaimMedia\OAuth\Grant\GrantTypeInterface;
+
+use FaimMedia\OAuth\Exception\OAuthException,
+    FaimMedia\OAuth\Exception\GrantTypeException,
+    FaimMedia\OAuth\Exception\StorageModelException;
 
 class OAuth extends DiInjectable {
 
@@ -22,11 +29,16 @@ class OAuth extends DiInjectable {
 	 */
 	const OPTION_ACCESS_TOKEN_QUERY = 2;
 
-
+	protected $_client;
+	protected $_user;
+	protected $_session;
+	protected $_accessToken;
 
 	protected $_options;
-	protected $_grantType;
+	protected $_grantTypes = [];
+	protected $_storageModels = [];
 
+/* INIT */
 	/**
 	 * Constructor
 	 */
@@ -35,18 +47,16 @@ class OAuth extends DiInjectable {
 			$accessToken = $this->getRequestAccessToken();
 		}
 
-		$this
-			->setGrantType(new GrantType())
-			->setAccessTokenModel(new AccessToken())
-			->setAuthCodeModel(new Auth)
-			->setClient()
-			->set
+		/*if(!isset($config['grantTypes'])) {
+			$this->addGrantType('client_credentials', ClientCredentialsGrant::class);
+		}*/
 
 		if(!empty($accessToken)) {
 			$this->validateAccessToken($accessToken);
 		}
 	}
 
+/* OPTIONS */
 	/**
 	 * Set options
 	 */
@@ -64,7 +74,84 @@ class OAuth extends DiInjectable {
 	 * Check if option is set
 	 */
 	public function hasOption(int $option): bool {
-		return ($this->option & $option);
+		return ($this->_options & $option);
+	}
+
+/* GRANT TYPES */
+
+	/**
+	 * Set grant type
+	 */
+	public function setGrantType(string $grantTypeClassName): self {
+
+		$grantTypeInstance = new $grantTypeClassName($this);
+
+		if(!($grantTypeInstance instanceof GrantTypeInterface)) {
+			throw new StorageModelException($grantTypeClassName.' must implement `'.BaseInterface::class.'`', StorageModelException::INVALID_INSTANCE);
+		}
+
+		$this->_grantTypes[$grantTypeInstance->getIdentifier()] = $grantTypeInstance;
+
+		return $this;
+	}
+
+	/**
+	 * Check if grant type exists
+	 */
+	public function hasGrantType(string $grantType): bool {
+		return (array_key_exists($grantType, $this->_grantTypes));
+	}
+
+	/**
+	 * Get the instance based on the provided grant type
+	 * If the grant type is invalid, an exception will be thrown
+	 */
+	protected function getGrantType(string $grantType = null) {
+
+		if(empty($grantType)) {
+			$e = new GrantTypeException('Missing `grant_type` parameter', GrantTypeException::MISSING_GRANT_TYPE);
+			$e->setField('grant_type');
+			$e->setResponseCode(409);
+
+			throw $e;
+		}
+
+		if(!array_key_exists($grantType, $this->_grantTypes)) {
+			$e = new GrantTypeException('Invalid `grant_type` parameter provided', GrantTypeException::INVALID_GRANT_TYPE);
+			$e->setField('grant_type');
+			$e->setResponseCode(409);
+
+			throw $e;
+		}
+
+		return $this->_grantTypes[$grantType];
+	}
+
+/* STORAGE ENGINES */
+	/**
+	 * Get storage engine correspondending with the provided grant type
+	 */
+	public function getStorageModel(string $identifier, bool $className = false) {
+		if(!array_key_exists($identifier, $this->_storageModels)) {
+			throw new StorageModelException('Storage model `'.$identifier.'` does not exist', StorageModelException::INVALID_STORAGE_MODEL);
+		}
+
+		$instance = $this->_storageModels[$identifier];
+
+		if($className) {
+			return get_class($instance);
+		}
+
+		return $instance;
+	}
+
+	/**
+	 * Set storage engine correspondending with the grant type
+	 */
+	public function setStorageModel(string $identifier, BaseInterface $storageModel): self {
+		$this->_storageModels[$identifier] = $storageModel;
+
+		return $this;
 	}
 
 	/**
@@ -176,20 +263,64 @@ class OAuth extends DiInjectable {
 	}
 
 	/**
-	 * Authorize
+	 * Start the authorization based on the request parameters
 	 */
-	public function authorize() {
+	public function startAuthorization() {
 
+		$grantType = $this->request->getPost('grant_type');
 
+		if(!$grantType) {
+			$grantType = $this->request->getQuery('grant_type');
+		}
 
+		$grantType = $this->getGrantType($grantType);
+
+		$grantType->authorize();
+	}
+
+	/**
+	 * Set client
+	 */
+	public function setClient(ClientInterface $client): self {
+		$this->_client = $client;
+
+		return $this;
+	}
+
+	/**
+	 * Get client
+	 */
+	public function getClient(): ClientInterface {
+		return $this->_client;
+	}
+
+	/**
+	 * List of valid storage models
+	 */
+	protected function getStorageModelIdentifiers(): array {
+		return [
+			'Client',
+			'ClientEndpoint',
+			'ClientGrant',
+			'ClientScope',
+			'GrantScope',
+		];
 	}
 
 /* MAGIC */
 	public function __call($name, $arg = []) {
-		if($this->_auth instanceof UserAccessToken) {
-			return call_user_func_array([$this->_auth, $name], $arg);
+		//if($this->_auth instanceof UserAccessToken) {
+		//	return call_user_func_array([$this->_auth, $name], $arg);
+		//}
+
+		if(substr($name, 0, 10) == 'getStorage') {
+			return call_user_func([$this, 'getStorageModel'], substr($name, 10), ...$arg);
 		}
 
-		throw new AuthorizationException('Method `'.$name.'` does not exists on library `'.get_class($this).'`');
+		if(substr($name, 0, 10) == 'setStorage') {
+			return call_user_func([$this, 'setStorageModel'], substr($name, 10), ...$arg);
+		}
+
+		throw new OAuthException('Method `'.$name.'` does not exists on library `'.get_class($this).'`');
 	}
 }

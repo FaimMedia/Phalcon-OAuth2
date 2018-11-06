@@ -14,22 +14,8 @@ class ClientCredentialsGrant extends AbstractGrant implements GrantTypeInterface
 	/**
 	 * Get identifier
 	 */
-	public function getIdentifier(): int {
-		return 1;
-	}
-
-	/**
-	 * Get identifier code
-	 */
-	public function getIdentifierCode(): string {
+	public function getIdentifier(): string {
 		return 'client_credentials';
-	}
-
-	/**
-	 * Get storage engine
-	 */
-	final protected function getStorageEngine(): ClientInterface {
-		return $this->_storageEngine;
 	}
 
 	/**
@@ -37,9 +23,15 @@ class ClientCredentialsGrant extends AbstractGrant implements GrantTypeInterface
 	 */
 	public function authorize(): bool {
 
-		$clientId = $this->request->getPost('client_id');
-		$clientSecret = $this->request->getPost('client_secret');
+		if(!$this->request->isPost()) {
+			$e = new ClientCredentialsGrantException('Invalid request method', ClientCredentialsGrantException::INVALID_REQUEST_METHOD);
+			$e->setResponseCode(405);
 
+			throw $e;
+		}
+
+	// check client id parameter
+		$clientId = $this->request->getPost('client_id');
 		if(!$clientId) {
 			$e = new ClientCredentialsGrantException('The parameter `client_id` is missing', ClientCredentialsGrantException::MISSING_CLIENT_ID);
 			$e->setField('client_id');
@@ -48,6 +40,8 @@ class ClientCredentialsGrant extends AbstractGrant implements GrantTypeInterface
 			throw $e;
 		}
 
+	// check client secret parameter
+		$clientSecret = $this->request->getPost('client_secret');
 		if(!$clientSecret) {
 			$e = new ClientCredentialsGrantException('The parameter `client_secret` is missing', ClientCredentialsGrantException::MISSING_CLIENT_SECRET);
 			$e->setField('client_secret');
@@ -56,7 +50,7 @@ class ClientCredentialsGrant extends AbstractGrant implements GrantTypeInterface
 			throw $e;
 		}
 
-		$storageEngine = $this->getStorageEngine();
+		$storageEngine = $this->getOAuth()->getStorageClient();
 
 		$client = call_user_func(get_class($storageEngine).'::getOAuthClientByIdAndSecret', $clientId, $clientSecret);
 		if(!$client) {
@@ -75,7 +69,9 @@ class ClientCredentialsGrant extends AbstractGrant implements GrantTypeInterface
 			throw $e;
 		}
 
-		$this->generateAccessToken();
+		$this->getOAuth()->setClient($client);
+
+		$this->issueAccessToken();
 
 		return true;
 	}

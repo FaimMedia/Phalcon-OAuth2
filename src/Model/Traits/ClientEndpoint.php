@@ -40,11 +40,7 @@ trait ClientEndpoint {
 	/**
 	 * Get redirect URI
 	 */
-	public function getRedirectUri(): ?string {
-		if(!$this->redirectUri) {
-			return null;
-		}
-
+	public function getRedirectUri(): string {
 		return (string)$this->redirectUri;
 	}
 }
