@@ -19,7 +19,9 @@ use Component\Event\DispatcherEvent;
 
 	use Model\AccessToken,
 	    Model\Client,
-	    Model\ClientEndpoint,
+		Model\ClientEndpoint,
+		Model\RefreshToken,
+		Model\Scope,
 	    Model\Session;
 
 // define paths
@@ -70,18 +72,24 @@ use Component\Event\DispatcherEvent;
 
 		$dispatcher->setEventsManager($eventsManager);
 
-
 		return $dispatcher;
 	});
 
 	// oauth server magic
 		$di->setShared('oauth', function() use ($di) {
 
-			$oauth = new OAuth();
-			$oauth->setStorageAccessToken(new AccessToken());
-			$oauth->setStorageClient(new Client());
-			$oauth->setStorageClientEndpoint(new ClientEndpoint());
-			$oauth->setStorageSession(new Session());
+			$oauth = new OAuth([
+				'storage' => [
+					'AccessToken'       => AccessToken::class,
+					'AuthorizationCode' => AuthorizationCode::class,
+					'Client'            => Client::class,
+					'ClientEndpoint'    => ClientEndpoint::class,
+					'RefreshToken'      => RefreshToken::class,
+					'Scope'             => Scope::class,
+					'Session'           => Session::class,
+				],
+
+			]);
 
 			return $oauth;
 		});

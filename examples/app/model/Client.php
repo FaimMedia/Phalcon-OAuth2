@@ -13,5 +13,4 @@ class Client extends AbstractModel implements BaseInterface, ClientInterface {
 	public function isActive(): bool {
 		return true;
 	}
-
 };

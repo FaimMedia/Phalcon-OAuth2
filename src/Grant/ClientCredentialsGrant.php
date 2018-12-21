@@ -23,55 +23,7 @@ class ClientCredentialsGrant extends AbstractGrant implements GrantTypeInterface
 	 */
 	public function authorize(): bool {
 
-		if(!$this->request->isPost()) {
-			$e = new ClientCredentialsGrantException('Invalid request method', ClientCredentialsGrantException::INVALID_REQUEST_METHOD);
-			$e->setResponseCode(405);
 
-			throw $e;
-		}
-
-	// check client id parameter
-		$clientId = $this->request->getPost('client_id');
-		if(!$clientId) {
-			$e = new ClientCredentialsGrantException('The parameter `client_id` is missing', ClientCredentialsGrantException::MISSING_CLIENT_ID);
-			$e->setField('client_id');
-			$e->setResponseCode(403);
-
-			throw $e;
-		}
-
-	// check client secret parameter
-		$clientSecret = $this->request->getPost('client_secret');
-		if(!$clientSecret) {
-			$e = new ClientCredentialsGrantException('The parameter `client_secret` is missing', ClientCredentialsGrantException::MISSING_CLIENT_SECRET);
-			$e->setField('client_secret');
-			$e->setResponseCode(403);
-
-			throw $e;
-		}
-
-		$storageEngine = $this->getOAuth()->getStorageClient();
-
-		$client = call_user_func(get_class($storageEngine).'::getOAuthClientByIdAndSecret', $clientId, $clientSecret);
-		if(!$client) {
-			$e = new ClientCredentialsGrantException('Invalid client credentials provided', ClientCredentialsGrantException::INVALID_CLIENT_CREDENTIALS);
-			$e->setField('client_id', 'client_secret');
-			$e->setResponseCode(403);
-
-			throw $e;
-		}
-
-		if(!$client->isActive()) {
-			$e = new ClientCredentialsGrantException('Invalid client credentials provided', ClientCredentialsGrantException::CLIENT_INACTIVE);
-			$e->setField('client_id', 'client_secret');
-			$e->setResponseCode(403);
-
-			throw $e;
-		}
-
-		$this->getOAuth()->setClient($client);
-
-		$this->issueAccessToken();
 
 		return true;
 	}

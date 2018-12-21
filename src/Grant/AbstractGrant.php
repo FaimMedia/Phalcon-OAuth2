@@ -49,15 +49,7 @@ abstract class AbstractGrant extends UserComponent {
 	protected function issueAccessToken() {
 
 	// generate session
-		$sessionModel = $this->getOAuth()->getStorageSession(true);
-		$session = new $sessionModel;
-		$session->assign([
-			'oauthClientId' => $this->getOAuth()->getClient()->getId(),
-			'type'          => 1,
-		]);
-		if(!$session->save()) {
-			throw new StorageModelException('Could not generate session', StorageModelException::SAVE_ERROR);
-		}
+
 
 	// generate access token
 		$random = new Random();
@@ -75,6 +67,23 @@ abstract class AbstractGrant extends UserComponent {
 		}
 
 	// generate refresh token
+
+
+	}
+
+	/**
+	 * Validate client credentials
+	 */
+	public function validateClientCredentials($clientId, $clientSecret) {
+
+	}
+
+	/**
+	 * Issue a refresh token
+	 */
+	protected function issueRefreshToken(): RefreshTokenInterface {
+
+		$random = new Random();
 		$refreshTokenHash = $random->base64Safe(50);
 
 		$refreshTokenModel = $this->getOAuth()->getStorageRefreshToken(true);
@@ -88,7 +97,27 @@ abstract class AbstractGrant extends UserComponent {
 			throw new StorageModelException('Could not generate refresh token', StorageModelException::SAVE_ERROR);
 		}
 
+		return $refreshToken;
 	}
+
+	/**
+	 * Generate session
+	 */
+	protected function generateSession(): SessionInterface {
+
+		$sessionModel = $this->getOAuth()->getStorageSession(true);
+		$session = new $sessionModel;
+		$session->assign([
+			'oauthClientId' => $this->getOAuth()->getClient()->getId(),
+			'type'          => 1,
+		]);
+		if(!$session->save()) {
+			throw new StorageModelException('Could not generate session', StorageModelException::SAVE_ERROR);
+		}
+
+		return $session;
+	}
+
 
 	/**
 	 * Validate all provided scopes

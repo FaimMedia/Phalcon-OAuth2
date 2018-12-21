@@ -11,6 +11,7 @@ trait Client {
 	protected $secret;
 	public $name;
 	public $description;
+	public $active = 1;
 
 /* INIT */
 	/**
@@ -29,6 +30,7 @@ trait Client {
 			'secret'          => 'secret',
 			'name'            => 'name',
 			'description'     => 'description',
+			'active'          => 'active',
 			'user_created'    => 'userCreated',
 			'user_modified'   => 'userModified',
 			'client_created'  => 'clientCreated',
@@ -58,6 +60,31 @@ trait Client {
 		return (string)$this->description;
 	}
 
+	/**
+	 * Get client secret
+	 */
+	protected function getSecret(): ?string {
+		if($this->secret) {
+			return $this->secret;
+		}
+
+		return null;
+	}
+
+	/**
+	 * Check if secret is present
+	 */
+	public function hasSecret(): bool {
+		return ($this->getSecret() !== null);
+	}
+
+	/**
+	 * Check if client is active
+	 */
+	public function isActive(): bool {
+		return (bool)$this->active;
+	}
+
 /* STATIC */
 
 	/**
@@ -70,6 +97,25 @@ trait Client {
 			'bind' => [
 				'id'      => $clientId,
 				'secret'  => $clientSecret,
+			],
+		]);
+
+		if(!$client) {
+			return null;
+		}
+
+		return $client;
+	}
+
+	/**
+	 * Get client by id
+	 */
+	public static function getOAuthClientById(int $clientId): ?self {
+
+		$client = parent::findFirst([
+			'id = :id:',
+			'bind' => [
+				'id'      => $clientId,
 			],
 		]);
 

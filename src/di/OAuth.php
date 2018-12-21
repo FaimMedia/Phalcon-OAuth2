@@ -47,9 +47,11 @@ class OAuth extends DiInjectable {
 			$accessToken = $this->getRequestAccessToken();
 		}
 
-		/*if(!isset($config['grantTypes'])) {
-			$this->addGrantType('client_credentials', ClientCredentialsGrant::class);
-		}*/
+		foreach($config['storage'] as $storage) {
+			var_dump(class_implements($storage));
+		}
+
+		die;
 
 		if(!empty($accessToken)) {
 			$this->validateAccessToken($accessToken);
@@ -263,6 +265,51 @@ class OAuth extends DiInjectable {
 	}
 
 	/**
+	 * Validate client credentials
+	 */
+	protected function validateClientCredentials(): ClientInterface {
+		if(!$this->request->isPost()) {
+			throw (new ClientCredentialsGrantException('Invalid request method', ClientCredentialsGrantException::INVALID_REQUEST_METHOD))
+				->setResponseCode(405);
+		}
+
+	// check client id parameter
+		$clientId = $this->request->getPost('client_id');
+		if(!$clientId) {
+			throw (new ClientCredentialsGrantException('The parameter `client_id` is missing', ClientCredentialsGrantException::MISSING_CLIENT_ID))
+				->setField('client_id')
+				->setResponseCode(403);
+		}
+
+	// check client secret parameter
+		$clientSecret = $this->request->getPost('client_secret');
+		if(!$clientSecret) {
+			throw (new ClientCredentialsGrantException('The parameter `client_secret` is missing', ClientCredentialsGrantException::MISSING_CLIENT_SECRET))
+				->setField('client_secret')
+				->setResponseCode(403);
+		}
+
+		$storageEngine = $this->getStorageClient();
+
+		$client = call_user_func(get_class($storageEngine).'::getOAuthClientByIdAndSecret', $clientId, $clientSecret);
+		if(!$client) {
+			throw (new ClientCredentialsGrantException('Invalid client credentials provided', ClientCredentialsGrantException::INVALID_CLIENT_CREDENTIALS))
+				->setField('client_id', 'client_secret')
+				->setResponseCode(403);
+		}
+
+		if(!$client->isActive()) {
+			throw (new ClientCredentialsGrantException('Invalid client credentials provided', ClientCredentialsGrantException::CLIENT_INACTIVE))
+				->setField('client_id', 'client_secret')
+				->setResponseCode(403);
+		}
+
+		$this->setClient($client);
+
+		return $client;
+	}
+
+	/**
 	 * Start the authorization based on the request parameters
 	 */
 	public function startAuthorization() {
@@ -274,6 +321,8 @@ class OAuth extends DiInjectable {
 		}
 
 		$grantType = $this->getGrantType($grantType);
+
+		$client = $this->validateClientCredentials();
 
 		$grantType->authorize();
 	}
@@ -292,6 +341,36 @@ class OAuth extends DiInjectable {
 	 */
 	public function getClient(): ClientInterface {
 		return $this->_client;
+	}
+
+	/**
+	 * Get client ID
+	 */
+	public function getClientId(): int {
+		return $this->getClient()->getId();
+	}
+
+	/**
+	 * Set user
+	 */
+	public function setUser($user): self {
+		$this->_user = $user;
+
+		return $this;
+	}
+
+	/**
+	 * Get user
+	 */
+	public function getUser() {
+		return $this->_user;
+	}
+
+	/**
+	 * Get user ID
+	 */
+	public function getUserId(): int {
+		return $this->getUser()->getId();
 	}
 
 	/**
